@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:sqflite/sqflite.dart' as sql;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:intl/intl.dart';
 
 
 class Database {
@@ -78,7 +79,7 @@ class Database {
 
     final data = {'nome': nome, 'cpf': cpf};
     final id = await db.insert('cadastro_pessoas', data);
-    atualizarLog();
+    atualizarLog('Insert');
     return id;
 
 
@@ -101,7 +102,7 @@ class Database {
     final data = {'nome': nome, 'cpf': cpf};
     final result = await db
         .update('cadastro_pessoas', data, where: "id = ?", whereArgs: [id]);
-    atualizarLog();
+    atualizarLog('update');
     return result;
   }
 
@@ -109,7 +110,7 @@ class Database {
     final db = await Database.db();
     try {
       await db.delete('cadastro_pessoas', where: "id = ?", whereArgs: [id]);
-      atualizarLog();
+      atualizarLog('delete');
     } catch (e) {
       print('Erro ao deletar pessoa: $e');
       rethrow;
@@ -121,9 +122,21 @@ class Database {
     return db.query('log_operacoes', orderBy: 'data_hora DESC');
   }
 
-  static void atualizarLog() async {
+  static void atualizarLog(String tipoOperacao) async {
+    final agora = DateTime.now().toUtc(); // Captura a data e hora atuais em UTC
+    final formattedDate = DateFormat('yyyy-MM-dd HH:mm:ss').format(agora); // Formata a data e hora
+
+    final data = {
+      'data_hora': formattedDate, // Define a data e hora formatada
+      'tipo_operacao': tipoOperacao, // Define o tipo de operação (Insert, Update, Delete)
+    };
+
+    final db = await Database.db();
+    await db.insert('log_operacoes', data); // Insere os dados na tabela log_operacoes
+
     final logs = await buscarLogOperacoes();
-    _logController.sink.add(logs);
+    _logController.sink.add(logs); // Atualiza o stream com os logs
+
   }
 
 
